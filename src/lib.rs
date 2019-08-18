@@ -248,6 +248,30 @@ impl<T> NonEmtpyVec<T> {
             )
         }
     }
+
+    /// Works like `.map(f).flatten()`
+    #[inline]
+    pub fn flat_map<I: IntoIterator, F: FnMut(T) -> I>(self, f: F) -> NonEmtpyVec<I::Item> {
+        NonEmtpyVec {
+            inner: self.inner.into_iter().flat_map(f).collect(),
+        }
+    }
+
+    /// Creates a `NonEmptyVec` whose elements are references to this `NonEmptyVec`'s elements
+    #[inline]
+    pub fn new_ref(&self) -> NonEmtpyVec<&T> {
+        NonEmtpyVec {
+            inner: self.inner.iter().collect(),
+        }
+    }
+
+    /// Creates a `NonEmptyVec` whose elements are mutable references to this `NonEmptyVec`'s elements
+    #[inline]
+    pub fn new_mut(&mut self) -> NonEmtpyVec<&mut T> {
+        NonEmtpyVec {
+            inner: self.inner.iter_mut().collect(),
+        }
+    }
 }
 
 impl<T> NonEmtpyVec<T>
@@ -281,6 +305,16 @@ impl<T> NonEmtpyVec<T> {
         R: RangeBounds<usize>,
     {
         self.inner.splice(range, replace_with)
+    }
+}
+
+impl<T, I: IntoIterator<Item = T>> NonEmtpyVec<I> {
+    /// Gets rid of one level of nested collections. Works like [`Iterator::flatten`](https://doc.rust-lang.org/std/iter/trait.Iterator.html#method.flatten).
+    #[inline]
+    pub fn flatten(self) -> NonEmtpyVec<T> {
+        NonEmtpyVec {
+            inner: self.inner.into_iter().flatten().collect(),
+        }
     }
 }
 
