@@ -1,5 +1,9 @@
+use std::borrow::{Borrow, BorrowMut};
+use std::io::{self, IoSlice, Write};
+use std::iter::FromIterator;
 use std::num::NonZeroUsize;
-use std::ops::{Deref, DerefMut, RangeBounds};
+use std::ops::{Deref, DerefMut, Index, RangeBounds};
+use std::slice::SliceIndex;
 use std::vec::Splice;
 
 macro_rules! copy_fn {
@@ -38,7 +42,7 @@ macro_rules! copy_fn {
 /// Like [`Vec<T>`](https://doc.rust-lang.org/std/vec/struct.Vec.html) but guaranteed to have at least one element.
 ///
 /// Undocumented functions work exactly like their `Vec` counterpart
-#[derive(Debug, Default, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct NonEmtpyVec<T> {
     inner: Vec<T>,
 }
@@ -247,6 +251,7 @@ where
 }
 
 impl<T> NonEmtpyVec<T> {
+    #[inline]
     pub fn splice<R, I>(
         &mut self,
         range: R,
@@ -259,3 +264,166 @@ impl<T> NonEmtpyVec<T> {
         self.inner.splice(range, replace_with)
     }
 }
+
+impl<T> AsRef<[T]> for NonEmtpyVec<T> {
+    #[inline]
+    fn as_ref(&self) -> &[T] {
+        &*self
+    }
+}
+
+impl<T> AsRef<Vec<T>> for NonEmtpyVec<T> {
+    #[inline]
+    fn as_ref(&self) -> &Vec<T> {
+        &self.inner
+    }
+}
+
+impl<T> AsRef<NonEmtpyVec<T>> for NonEmtpyVec<T> {
+    #[inline]
+    fn as_ref(&self) -> &NonEmtpyVec<T> {
+        self
+    }
+}
+
+impl<T> AsMut<[T]> for NonEmtpyVec<T> {
+    #[inline]
+    fn as_mut(&mut self) -> &mut [T] {
+        &mut *self
+    }
+}
+
+impl<T> AsMut<Vec<T>> for NonEmtpyVec<T> {
+    #[inline]
+    fn as_mut(&mut self) -> &mut Vec<T> {
+        &mut self.inner
+    }
+}
+
+impl<T> AsMut<NonEmtpyVec<T>> for NonEmtpyVec<T> {
+    #[inline]
+    fn as_mut(&mut self) -> &mut NonEmtpyVec<T> {
+        self
+    }
+}
+
+impl<T> Borrow<[T]> for NonEmtpyVec<T> {
+    #[inline]
+    fn borrow(&self) -> &[T] {
+        &*self
+    }
+}
+
+impl<T> BorrowMut<[T]> for NonEmtpyVec<T> {
+    #[inline]
+    fn borrow_mut(&mut self) -> &mut [T] {
+        &mut *self
+    }
+}
+
+impl<T: Default> Default for NonEmtpyVec<T> {
+    #[inline]
+    fn default() -> Self {
+        Self::new(T::default())
+    }
+}
+
+impl<'a, T> Extend<&'a T> for NonEmtpyVec<T>
+where
+    T: 'a + Copy,
+{
+    #[inline]
+    fn extend<I: IntoIterator<Item = &'a T>>(&mut self, iter: I) {
+        self.inner.extend(iter)
+    }
+}
+
+impl<T> Extend<T> for NonEmtpyVec<T> {
+    #[inline]
+    fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
+        self.inner.extend(iter)
+    }
+}
+
+impl<T> IntoIterator for NonEmtpyVec<T> {
+    type Item = T;
+    type IntoIter = std::vec::IntoIter<T>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.inner.into_iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a NonEmtpyVec<T> {
+    type Item = &'a T;
+    type IntoIter = std::slice::Iter<'a, T>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.inner.iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a mut NonEmtpyVec<T> {
+    type Item = &'a mut T;
+    type IntoIter = std::slice::IterMut<'a, T>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.inner.iter_mut()
+    }
+}
+
+impl<T, I> Index<I> for NonEmtpyVec<T>
+where
+    I: SliceIndex<[T]>,
+{
+    type Output = I::Output;
+
+    #[inline]
+    fn index(&self, index: I) -> &Self::Output {
+        self.inner.index(index)
+    }
+}
+
+impl Write for NonEmtpyVec<u8> {
+    #[inline]
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.inner.write(buf)
+    }
+
+    #[inline]
+    fn write_vectored(&mut self, bufs: &[IoSlice<'_>]) -> io::Result<usize> {
+        self.inner.write_vectored(bufs)
+    }
+
+    #[inline]
+    fn flush(&mut self) -> io::Result<()> {
+        self.inner.flush()
+    }
+
+    #[inline]
+    fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
+        self.inner.write_all(buf)
+    }
+}
+
+pub trait TryFromIterator<T>: Sized {
+    fn try_from_iter<I: Iterator<Item = T>>(iter: I) -> Option<Self>;
+}
+
+impl<T> TryFromIterator<T> for NonEmtpyVec<T> {
+    fn try_from_iter<I: Iterator<Item = T>>(iter: I) -> Option<Self> {
+        let v = Vec::from_iter(iter);
+        NonEmtpyVec::from_vec(v)
+    }
+}
+
+pub trait TryCollect: Iterator + Sized {
+    fn try_collect<E: TryFromIterator<Self::Item>>(self) -> Option<E> {
+        E::try_from_iter(self)
+    }
+}
+
+impl<I: Iterator> TryCollect for I {}
