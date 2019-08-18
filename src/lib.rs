@@ -403,7 +403,7 @@ impl<T> IntoIterator for NonEmtpyVec<T> {
     type IntoIter = std::vec::IntoIter<T>;
 
     #[inline]
-    fn into_iter(self) -> Self::IntoIter {
+    fn into_iter(self) -> std::vec::IntoIter<T> {
         self.inner.into_iter()
     }
 }
@@ -413,7 +413,7 @@ impl<'a, T> IntoIterator for &'a NonEmtpyVec<T> {
     type IntoIter = std::slice::Iter<'a, T>;
 
     #[inline]
-    fn into_iter(self) -> Self::IntoIter {
+    fn into_iter(self) -> std::slice::Iter<'a, T> {
         self.inner.iter()
     }
 }
@@ -423,7 +423,7 @@ impl<'a, T> IntoIterator for &'a mut NonEmtpyVec<T> {
     type IntoIter = std::slice::IterMut<'a, T>;
 
     #[inline]
-    fn into_iter(self) -> Self::IntoIter {
+    fn into_iter(self) -> std::slice::IterMut<'a, T> {
         self.inner.iter_mut()
     }
 }
