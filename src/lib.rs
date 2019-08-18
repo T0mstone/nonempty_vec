@@ -82,7 +82,7 @@ impl<T> NonEmtpyVec<T> {
         }
     }
 
-    /// Constructs  a new `NonEmptyVec<T>` from a first element and a `Vec` of elements
+    /// Constructs a new `NonEmptyVec<T>` from a `Vec` (returns `None` iff the `Vec` is empty)
     #[inline]
     pub fn from_vec(v: Vec<T>) -> Option<Self> {
         if v.is_empty() {
@@ -191,6 +191,7 @@ impl<T> NonEmtpyVec<T> {
 
     copy_fn!(pub fn push(&mut self, value: T););
 
+    /// Will not pop the last item, instead returns `None`
     #[inline]
     pub fn pop(&mut self) -> Option<T> {
         if self.inner.len() < 2 {
