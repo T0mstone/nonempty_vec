@@ -229,6 +229,25 @@ impl<T> NonEmtpyVec<T> {
     {
         self.inner.resize_with(new_len.get(), f)
     }
+
+    /// Creates a new `NonEmptyVec` by applying `f` to every element of `self`
+    #[inline]
+    pub fn map<F: FnMut(T) -> U, U>(self, f: F) -> NonEmtpyVec<U> {
+        NonEmtpyVec {
+            inner: self.inner.into_iter().map(f).collect(),
+        }
+    }
+
+    /// Applies `f` to every element of `self`
+    #[inline]
+    pub fn map_in_place<F: FnMut(T) -> T>(&mut self, f: F) {
+        unsafe {
+            std::ptr::write(
+                &mut self.inner,
+                std::ptr::read(&self.inner).into_iter().map(f).collect(),
+            )
+        }
+    }
 }
 
 impl<T> NonEmtpyVec<T>
