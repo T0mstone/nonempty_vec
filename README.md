@@ -2,6 +2,7 @@
 This is a crate providing a single type, `NonEmptyVec`, which works just like `Vec` with a few differences:
   1. it is guaranteed to always have at least one element
   2. most* of its methods mirror those of `Vec` exactly
+  3. it has some additional methods (`map`, `map_in_place`, `flatten`, `flat_map`, `new_ref`, `new_mut`)
 
 and two [traits](#tryfromiterator-and-trycollect)
 
